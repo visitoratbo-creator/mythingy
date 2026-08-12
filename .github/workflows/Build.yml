@@ -1,0 +1,43 @@
+name: Cross-Compile & Deploy to Pi
+
+on:
+  push:
+    branches: [ "main" ] # Triggers the build every time you push to main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Install Rust Toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: aarch64-unknown-linux-gnu
+
+    - name: Install Cross-Compilation Linker
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-aarch64-linux-gnu
+
+    - name: Build Release Binary
+      run: |
+        # Force cargo to use the correct ARM64 linker during cross-compilation
+        export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
+        cargo build --release --target aarch64-unknown-linux-gnu
+
+    - name: Copy Binary to Pi via SCP
+      uses: appleboy/scp-action@v1.0.3
+      with:
+        host: ${{ secrets.PI_HOST }}
+        username: ${{ secrets.PI_USERNAME }}
+        key: ${{ secrets.PI_SSH_KEY }}
+        port: ${{ secrets.PI_PORT }}
+        # The local file to grab
+        source: "target/aarch64-unknown-linux-gnu/release/the-vault"
+        # The folder path on your Pi Zero 2 W where you want it dropped
+        target: "/home/oem/Documents/the-vault/"
+        # Cleans up the target directory structure so just the binary is dropped
+        strip_components: 4 
