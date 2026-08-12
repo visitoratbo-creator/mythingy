@@ -235,11 +235,11 @@ async fn main() {
 /// and a writer (spawned child task fed by an mpsc channel that other tasks
 /// push into via the shared `GameState`).
 async fn handle_connection(
-    ws: tokio_tungstenite::WebSocketStream<tokio::net::TcpStream>,
+    mut ws: tokio_tungstenite::WebSocketStream<tokio::net::TcpStream>,
     state: Arc<RwLock<GameState>>,
 ) {
     // ---- 1. Assign ID + register in global state ------------------------
-    let (id, rx) = {
+    let (id, mut rx) = {
         let mut gs = state.write().await;
 
         // Hard cap — reject overflow players with a clean close.
