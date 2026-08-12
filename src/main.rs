@@ -329,9 +329,10 @@ async fn handle_connection(
     let removed_pairs: Vec<u16> = gs
         .active_pairs
         .iter()
-        .filter(|&(a, b)| *a == id || *b == id)
-        .map(|&(a, b)| if *a == id { *b } else { *a })
+        .filter(|&&(a, b)| a == id || b == id)
+        .map(|&(a, b)| if a == id { b } else { a })
         .collect();
+
 
     for other in &removed_pairs {
         gs.active_pairs
