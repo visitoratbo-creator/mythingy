@@ -1,0 +1,40 @@
+[package]
+name = "the-vault"
+version = "0.1.0"
+edition = "2021"
+authors = ["Vault Heist Havoc Team"]
+description = "Ultra-light WebSocket game server + WebRTC signaling coordinator for Raspberry Pi Zero 2 W"
+
+[[bin]]
+name = "the-vault"
+path = "src/main.rs"
+
+[dependencies]
+# Single multi-threaded runtime, restricted to 2 worker threads (set in main).
+# "full" enables rt-multi-thread, net, time, sync, macros, io-util — everything we touch.
+tokio            = { version = "1.36", features = ["full"] }
+tokio-tungstenite = { version = "0.23", default-features = false, features = ["handshake"] }
+serde            = { version = "1.0", features = ["derive"] }
+# "alloc" feature is required for `to_allocvec` / `from_bytes` to Vec-backed paths.
+postcard         = { version = "1.0", features = ["alloc"] }
+futures-util     = { version = "0.3", default-features = false, features = ["std"] }
+
+[profile.release]
+opt-level        = 0            # Aggressive inlining; fits comfortably under 15MB footprint.
+lto              = "fat"        # Cross-crate inlining; smaller binary + tighter hot paths.
+codegen-units    = 1            # One unit = maximum optimization opportunities.
+panic            = "abort"      # No unwinding tables -> ~200KB smaller binary, faster startup.
+strip            = "symbols"   # Strip symbol table from final ELF.
+debug            = false
+incremental      = false
+
+[profile.release.package."*"]
+opt-level = 0
+
+[profile.release.build-override]
+opt-level = 0
+codegen-units = 1
+
+[profile.release.package.proc-macro2]
+opt-level = 0
+codegen-units = 1
