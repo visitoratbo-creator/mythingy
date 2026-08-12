@@ -1,12 +1,14 @@
-name: Cross-Compile & Deploy to Pi
+name: Cross-Compile & Publish Release
 
 on:
   push:
-    branches: [ "main" ] # Triggers the build every time you push to main
+    branches: [ "main" ] # Triggers when you push code to main
 
 jobs:
-  build-and-deploy:
+  build-and-release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # Crucial permission required to publish GitHub Releases
 
     steps:
     - name: Checkout Code
@@ -24,20 +26,26 @@ jobs:
 
     - name: Build Release Binary
       run: |
-        # Force cargo to use the correct ARM64 linker during cross-compilation
         export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
         cargo build --release --target aarch64-unknown-linux-gnu
 
-    - name: Copy Binary to Pi via SCP
-      uses: appleboy/scp-action@v1.0.3
+    - name: Package Binary into Tarball
+      run: |
+        # Moving the raw binary to root and tarballing it preserves the executable chmod flags
+        cp target/aarch64-unknown-linux-gnu/release/the-vault ./the-vault
+        tar -czf the-vault-aarch64.tar.gz the-vault
+
+    - name: Upload to Workflow Artifacts
+      uses: actions/upload-artifact@v4
       with:
-        host: ${{ secrets.PI_HOST }}
-        username: ${{ secrets.PI_USERNAME }}
-        key: ${{ secrets.PI_SSH_KEY }}
-        port: ${{ secrets.PI_PORT }}
-        # The local file to grab
-        source: "target/aarch64-unknown-linux-gnu/release/the-vault"
-        # The folder path on your Pi Zero 2 W where you want it dropped
-        target: "/home/oem/Documents/the-vault/"
-        # Cleans up the target directory structure so just the binary is dropped
-        strip_components: 4 
+        name: compilation-artifact
+        path: the-vault-aarch64.tar.gz
+
+    - name: Upload directly to GitHub Releases
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v${{ github.run_number }}
+        name: Release v${{ github.run_number }}
+        draft: false
+        prerelease: false
+        files: the-vault-aarch64.tar.gz
