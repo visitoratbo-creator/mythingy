@@ -1,21 +1,74 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>The Vault</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <title>The Vault: Ultimate Heist Havoc</title>
+    <style>
+      :root { --neon-yellow: #ffe27a; --neon-pink: #ff4d6d; }
+      * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+      html, body { width: 100%; height: 100%; overflow: hidden; background: #111; font-family: 'Trebuchet MS', sans-serif; }
+      #game-canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }
+      
+      /* Mobile UI Overlays */
+      #ui-layer { position: absolute; inset: 0; pointer-events: none; z-index: 10; }
+      
+      #join-screen {
+        position: absolute; inset: 0; background: rgba(0,0,0,0.85);
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        pointer-events: auto; transition: opacity 0.5s; z-index: 20;
+      }
+      #join-screen.hidden { opacity: 0; pointer-events: none; }
+      #join-screen h1 { color: var(--neon-yellow); font-size: 2.5rem; text-shadow: 4px 4px 0 var(--neon-pink); margin-bottom: 2rem; text-align: center; }
+      #join-btn {
+        background: var(--neon-pink); color: #fff; border: 4px solid #fff;
+        padding: 1rem 2rem; font-size: 1.5rem; font-weight: bold; border-radius: 12px;
+        cursor: pointer; box-shadow: 0 8px 0 #a30025; transition: transform 0.1s;
+      }
+      #join-btn:active { transform: translateY(4px); box-shadow: 0 4px 0 #a30025; }
+
+      #joystick-zone { position: absolute; bottom: 0; left: 0; width: 50%; height: 50%; pointer-events: auto; }
+      #joystick-base { position: absolute; width: 120px; height: 120px; border-radius: 50%; background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3); display: none; }
+      #joystick-thumb { position: absolute; width: 60px; height: 60px; border-radius: 50%; background: var(--neon-yellow); display: none; }
+
+      #status-ui { position: absolute; top: 10px; left: 10px; color: #fff; text-shadow: 2px 2px 0 #000; }
+      #chaos-banner { position: absolute; top: 20%; left: 50%; transform: translate(-50%, -50%); color: var(--neon-yellow); font-size: 2rem; font-weight: bold; text-shadow: 3px 3px 0 #000; opacity: 0; transition: opacity 0.5s; text-align: center; }
+    </style>
   </head>
   <body>
-    <canvas id="game" width="800" height="600"></canvas>
-    <button id="join">Join Heist</button>
-    <script src="audio.js"></script>
-    <script>
-      document.getElementById("join").onclick = async () => {
-        const engine = await VaultClient.start(
-          (location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws",
-          document.getElementById("game"),
-        );
-        window.__vault = engine;
-      };
+    <canvas id="game-canvas"></canvas>
+    
+    <div id="ui-layer">
+      <div id="status-ui">
+        <div>ID: <span id="ui-id">--</span></div>
+        <div>Tick: <span id="ui-tick">0</span></div>
+        <div>Chaos: <span id="ui-chaos">Normal</span></div>
+      </div>
+      
+      <div id="chaos-banner"></div>
+      
+      <div id="joystick-zone">
+        <div id="joystick-base"></div>
+        <div id="joystick-thumb"></div>
+      </div>
+    </div>
+
+    <div id="join-screen">
+      <h1>THE VAULT<br>HEIST HAVOC</h1>
+      <button id="join-btn">JOIN HEIST</button>
+    </div>
+
+    <!-- Load Three.js via ES6 Modules from CDN -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+        }
+      }
     </script>
+    <!-- Load our custom audio/network engine -->
+    <script src="audio.js"></script>
+    <!-- Load the game logic as a module -->
+    <script type="module" src="game.js"></script>
   </body>
 </html>
