@@ -88,6 +88,8 @@ pub struct WackyPlayerState {
 // ---------------------------------------------------------------------------
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(tag = "type", content = "data")] // This maps your variants cleanly to JSON/MessagePack objects
+#[repr(u8)]
 enum ClientMsg {
     /// Local player moved / changed held item. Client is authoritative over
     /// its own avatar (mobiles can't be trusted to stay synced, but on a
@@ -117,6 +119,8 @@ enum ClientMsg {
 // ---------------------------------------------------------------------------
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(tag = "type", content = "data")] // This maps your variants cleanly to JSON/MessagePack objects
+#[repr(u8)]
 enum ServerMsg {
     /// 30Hz authoritative snapshot of every connected player.
     Snapshot {
@@ -292,7 +296,7 @@ async fn handle_connection(
                 break;
             }
         }
-        let _ = sink.close(None).await;
+        let _ = sink.close().await;
     });
 
     // ---- 4. Reader loop (this task) -------------------------------------
@@ -325,8 +329,8 @@ async fn handle_connection(
     let removed_pairs: Vec<u16> = gs
         .active_pairs
         .iter()
-        .filter(|&&(a, b)| a == id || b == id)
-        .map(|&&(a, b)| if a == id { b } else { a })
+        .filter(|&(a, b)| *a == id || *b == id)
+        .map(|&(a, b)| if *a == id { *b } else { *a })
         .collect();
 
     for other in &removed_pairs {
@@ -419,7 +423,7 @@ async fn handle_client_msg(from_id: u16, msg: ClientMsg, state: &Arc<RwLock<Game
 /// and push the serialized message. Cheap and lock-free for the target's writer
 /// task (mpsc::UnboundedSender::send is non-blocking).
 async fn relay_webrtc(
-    from: u16,
+    _from: u16, // Prefix with underscore to satisfy the unused variable lint
     to: u16,
     msg: ServerMsg,
     state: &Arc<RwLock<GameState>>,
