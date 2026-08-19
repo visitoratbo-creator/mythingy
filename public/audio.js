@@ -525,20 +525,15 @@ window.VaultClient = {
         case "AssignId":
           engine.myId = msg.id;
           console.log("[vault] assigned id:", msg.id);
+          // FIX: Tell the game engine to hide the join screen and set the ID
+          if (window.onVaultAssignId) window.onVaultAssignId(msg.id);
           break;
 
         case "Snapshot":
-          // Hand to game engine for 3D interpolation. Audio engine doesn't
-          // need full snapshots, but it DOES need to know each peer's
-          // position relative to walls to update muffle flags. The game
-          // engine should call engine.setPeerMuffled(id, bool) per frame.
           if (window.onVaultSnapshot) window.onVaultSnapshot(msg);
           break;
 
         case "ProximityConnect":
-          // Server says: "open a WebRTC link with this peer."
-          // Both sides receive this; pick the lower ID as initiator to
-          // avoid offer/offer glare.
           engine._createPeerConnection(msg.with, initiator=(engine.myId < msg.with));
           break;
 
@@ -557,9 +552,6 @@ window.VaultClient = {
           break;
 
         case "ScreamShockwave":
-          // Remote peer screamed — render the shockwave. Game engine also
-          // listens for this to apply ragdoll physics locally if the
-          // affected peer is the local player.
           engine._spawnShockwaveOnCanvas(msg.from, msg.x, msg.z);
           if (window.onVaultScream) window.onVaultScream(msg);
           break;
