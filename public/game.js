@@ -42,7 +42,8 @@ class VaultGame {
   // --------------------------------------------------------------------------
   async init() {
     document.getElementById('join-btn').addEventListener('click', async () => {
-      const wsUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws';
+      // FIX: Hardcode port 8787 to match the Rust binary, bypassing Python http port
+      const wsUrl = `ws://${location.hostname}:8787/ws`;
       this.engine = await VaultClient.start(wsUrl, document.getElementById('game-canvas'));
       this.setupNetworkHooks();
     });
@@ -95,7 +96,7 @@ class VaultGame {
       this.walls.push(wall);
     }
 
-    // Loot generation (Local only, for visual wackiness. Position is synced conceptually but static here)
+    // Loot generation
     for(let i=0; i<5; i++) {
       const weight = Math.floor(Math.random() * 3) + 1; // 1 to 3
       const size = 0.5 + weight * 0.3;
@@ -225,8 +226,6 @@ class VaultGame {
       const dz = me.currentState.z - msg.z;
       const distSq = dx*dx + dz*dz;
       if (distSq <= 6.0 * 6.0) { // SCREAM_RADIUS squared
-        // Tell server we are ragdolled (server is authoritative, but this speeds up local feel)
-        // Actually server handles ragdoll propagation, we just apply local physics impulse
         me.knockback = new THREE.Vector3(dx, 0, dz).normalize().multiplyScalar(15);
       }
     }
@@ -237,7 +236,7 @@ class VaultGame {
     document.getElementById('ui-chaos').innerText = chaos;
     
     const banner = document.getElementById('chaos-banner');
-    banner.innerText = chaos.replace(/([A-Z])/g, ' $1').trim().toUpperCase() + '!";
+    banner.innerText = chaos.replace(/([A-Z])/g, ' $1').trim().toUpperCase() + "!";
     banner.style.opacity = 1;
     setTimeout(() => banner.style.opacity = 0, 2500);
 
