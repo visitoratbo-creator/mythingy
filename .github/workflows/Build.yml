@@ -1,51 +1,42 @@
-name: Cross-Compile & Publish Release
+name: Cross-Compile Rust for Manjaro ARM (GNU Target)
 
 on:
   push:
-    branches: [ "main" ] # Triggers when you push code to main
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
-  build-and-release:
+  build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write # Crucial permission required to publish GitHub Releases
 
     steps:
-    - name: Checkout Code
+    - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Install Rust Toolchain
+    - name: Install Rust toolchain
       uses: dtolnay/rust-toolchain@stable
       with:
         targets: aarch64-unknown-linux-gnu
 
-    - name: Install Cross-Compilation Linker
+    - name: Install ARM64 GNU Linker
       run: |
         sudo apt-get update
-        sudo apt-get install -y gcc-aarch64-linux-gnu
+        sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
-    - name: Build Release Binary
+    - name: Configure Cargo Linker
       run: |
-        export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
-        cargo build --release --target aarch64-unknown-linux-gnu
+        mkdir -p .cargo
+        cat <<EOF > .cargo/config.toml
+        [target.aarch64-unknown-linux-gnu]
+        linker = "aarch64-linux-gnu-gcc"
+        EOF
 
-    - name: Package Binary into Tarball
-      run: |
-        # Moving the raw binary to root and tarballing it preserves the executable chmod flags
-        cp target/aarch64-unknown-linux-gnu/release/the-vault ./the-vault
-        tar -czf the-vault-aarch64.tar.gz the-vault
+    - name: Run Cargo Build
+      run: cargo build --target aarch64-unknown-linux-gnu --release
 
-    - name: Upload to Workflow Artifacts
+    - name: Upload GNU Binary Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: compilation-artifact
-        path: the-vault-aarch64.tar.gz
-
-    - name: Upload directly to GitHub Releases
-      uses: softprops/action-gh-release@v2
-      with:
-        tag_name: v${{ github.run_number }}
-        name: Release v${{ github.run_number }}
-        draft: false
-        prerelease: false
-        files: the-vault-aarch64.tar.gz
+        name: rpi-manjaro-gnu-binary
+        path: target/aarch64-unknown-linux-gnu/release/
